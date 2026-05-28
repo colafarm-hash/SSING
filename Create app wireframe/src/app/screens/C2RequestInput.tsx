@@ -35,15 +35,27 @@ export default function C2RequestInput() {
   const handleSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("=== SUBMIT CLICKED ===");
-    console.log("Mode:", mode);
-    console.log("isComplete:", isComplete);
-    console.log("Navigating to:", mode === "instant" ? "/instructors" : "/rooms");
+    if (!isComplete) return;
+
+    const conditions = {
+      discipline,
+      level,
+      groupSize,
+      duration,
+      participants,
+      allowMulti,
+    };
 
     if (mode === "instant") {
-      navigate("/instructors");
+      // 강사단위 합류 모델: instant 는 allowMulti 와 무관하게 강사 풀(C3)로 이동.
+      // 합류/단독 분기는 C4 매칭 시작 시점에 다이얼로그로 처리.
+      navigate("/instructors", {
+        state: { conditions, allowMulti, mode: "instant" },
+      });
     } else {
-      navigate(`/rooms?allowMulti=${allowMulti}`);
+      navigate(`/rooms?allowMulti=${allowMulti}`, {
+        state: { conditions, allowMulti, mode: "reservation" },
+      });
     }
   };
 

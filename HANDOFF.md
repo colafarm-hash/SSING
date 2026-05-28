@@ -197,6 +197,8 @@
 | 2026-05-29 | **타인 매칭(그룹+Voting) 메커니즘 04에 추가**. 즉시·예약 모드 둘 다 "함께 듣기 OK / 1:1 단독만" 옵션. 즉시 + 함께OK → 그룹 매칭 + voting flow (`/group-matching`) |
 | 2026-05-29 | Master Patch + Wireflow Patch 작성 완료. Figma Make에 던지면 모든 이슈(빌드 실패·죽은 버튼·라우팅 누락·화살표 가독성) 해결 |
 | 2026-05-29 | 사용자 자고 오면서 메모 3가지 대기 — Wireflow 화살표 정밀화(버튼→창), 미니 모킹 픽셀 정합, voting 제거 + 즉시매칭 "강사단위" 전환 (정확한 의미는 사용자가 추후 설명 예정) |
+| 2026-05-28 | **Git 셋업 + 단일 HTML 배포 빌드**. GitHub repo `colafarm-hash/SSING` 연결, `main` 푸시. Wireflow Diagram을 `vite-plugin-singlefile`로 **단일 HTML 419KB**로 빌드 → 카톡 전송용 (더블클릭만으로 동작). |
+| 2026-05-28 | **Wireflow 화살표 전량 제거 (사용자 요청)**. App.tsx의 SVG path 32개 + ArrowLabel 27개 + 헤더 "32 arrows" 카운트 텍스트 삭제. 카드 28개 + 레인 레이블 8개는 유지. `SSING_wireflow.html` 411KB로 재빌드. ArrowLabel 헬퍼 함수 정의는 추후 재활용 가능성 있어 보존. |
 
 ---
 
@@ -306,3 +308,46 @@ HANDOFF.md 섹션 10 읽었습니다. 현재 위치 = 와이어프레임 후반.
 - 사용자가 노트북으로 작업 이동 중
 - git push prompt를 Claude Code에 던져서 처리 중
 - 모든 최신 작업물이 push되면 노트북에서 git clone 또는 git pull로 이어 작업 가능
+
+---
+
+## 11. 단일 HTML 배포 빌드 (2026-05-28)
+
+### 목적
+Wireflow Diagram을 **카카오톡 파일 전송 / 발표·공유용**으로 단일 HTML 파일에 인라인 빌드. 받는 사람은 더블클릭만으로 브라우저에서 즉시 열람 (서버·설치 불필요).
+
+### 빌드 셋업
+| 항목 | 값 |
+|---|---|
+| 프로젝트 | `Wireflow Diagram for SSING/` |
+| 라우팅 | `MemoryRouter` (URL 안 건드림 → `file://` 호환) |
+| 플러그인 | `vite-plugin-singlefile` (devDep 추가 완료) |
+| Vite 설정 | `base: './'` + `viteSingleFile()` plugin |
+| 빌드 명령 | `npm run build` (project dir 안에서) |
+| 출력 | `dist/index.html` (모든 JS·CSS 인라인된 단일 파일) |
+
+### 산출물 위치 (2곳 동기 관리)
+| 위치 | 용도 |
+|---|---|
+| `C:\Users\신지환\Desktop\ssing\SSING_wireflow.html` | **Repo 루트 사본** (Git 추적, 원격에서 다운로드 가능) |
+| `C:\Users\신지환\Desktop\SSING_wireflow.html` | **데스크톱 사본** (카톡 첨부 / 즉시 전송용) |
+
+### 재빌드 절차 (App.tsx 등 수정 후)
+```powershell
+cd "C:\Users\신지환\Desktop\ssing\Wireflow Diagram for SSING"
+npm run build
+# 그다음 dist/index.html을 위 2개 위치에 복사
+Copy-Item .\dist\index.html "C:\Users\신지환\Desktop\ssing\SSING_wireflow.html" -Force
+Copy-Item .\dist\index.html "C:\Users\신지환\Desktop\SSING_wireflow.html" -Force
+```
+
+### 현재 빌드 상태
+- 파일 크기: **411 KB** (gzip 100 KB)
+- 화살표 전량 제거된 버전 (사용자 요청 — 2026-05-28)
+- 28 cards + 8 lane labels 유지
+- `ArrowLabel` 헬퍼 함수 정의는 보존 (재활용 가능, 빌드 영향 없음)
+
+### 주의
+- `dist/` 폴더는 `.gitignore` 대상이므로 **빌드 후 반드시 루트 사본으로 복사**해야 Git에 들어감
+- `index.html` (Vite 기본 출력명) 그대로 두면 헷갈리므로 `SSING_wireflow.html`로 리네임 복사
+- 다음 빌드 변경 시: 변경 이력에 한 줄 추가 + 두 사본 동시 갱신 필수

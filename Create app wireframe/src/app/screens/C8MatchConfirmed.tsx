@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { ChevronLeft, Star, MessageCircle, X, CheckCircle, Award } from "lucide-react";
 import ReceiptModal from "../components/ReceiptModal";
 import CancelDialog from "../components/CancelDialog";
+
+type JoinRole = "first" | "subsequent" | "solo";
 
 const mockData = {
   instructor: { name: "김OO", grade: 5, rating: 4.9 },
@@ -26,8 +28,65 @@ const mockData = {
 
 export default function C8MatchConfirmed() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+
+  // 강사단위 합류 컨텍스트
+  const fromJoin: boolean = location.state?.fromInstructorJoin === true;
+  const joinRole: JoinRole = location.state?.joinRole ?? "solo";
+  const currentCount: number = location.state?.currentCount ?? mockData.lesson.groupSize;
+  const joinWindowMin: number | undefined = location.state?.joinWindowMin;
+  const perPersonPrice: number = location.state?.perPersonPrice ?? mockData.payment.amount;
+
+  // C7 에서 넘어온 instructor / conditions / reservationLesson 우선 사용
+  const stateInstructor = location.state?.instructor;
+  const stateConditions = location.state?.conditions;
+  const reservationLesson = location.state?.reservationLesson;
+  const mode: "instant" | "reservation" = location.state?.mode ?? "instant";
+
+  const instructor = stateInstructor
+    ? {
+        name: stateInstructor.name ?? mockData.instructor.name,
+        grade: stateInstructor.grade ?? mockData.instructor.grade,
+        rating: stateInstructor.rating ?? mockData.instructor.rating,
+      }
+    : mockData.instructor;
+
+  const lesson = reservationLesson
+    ? {
+        startTime: reservationLesson.startTime,
+        duration: reservationLesson.duration,
+        discipline: reservationLesson.discipline,
+        level: reservationLesson.level,
+        groupSize: currentCount,
+        location: reservationLesson.location ?? mockData.lesson.location,
+      }
+    : {
+        startTime:
+          mode === "instant" && joinRole === "subsequent"
+            ? "이 방 시작 시간 기준 1시간 내"
+            : mockData.lesson.startTime,
+        duration: stateConditions?.duration
+          ? `${stateConditions.duration}시간`
+          : mockData.lesson.duration,
+        discipline:
+          stateConditions?.discipline === "ski"
+            ? "스키"
+            : stateConditions?.discipline === "snowboard"
+            ? "보드"
+            : mockData.lesson.discipline,
+        level:
+          stateConditions?.level === "beginner"
+            ? "입문"
+            : stateConditions?.level === "intermediate"
+            ? "초급"
+            : stateConditions?.level === "advanced"
+            ? "상급"
+            : mockData.lesson.level,
+        groupSize: currentCount,
+        location: mockData.lesson.location,
+      };
 
   const handleCancelConfirm = () => {
     setShowCancel(false);
@@ -56,6 +115,20 @@ export default function C8MatchConfirmed() {
         <div className="text-[14px] text-[#76787A]">
           강사와 채팅에서 만나는 장소를 정해주세요
         </div>
+
+        {/* 강사단위 합류 상태 안내 */}
+        {fromJoin && joinRole === "first" && (
+          <div className="mt-4 rounded-[12px] bg-[#F5F6F7] px-4 py-3 text-[13px] text-[#4B4F54] leading-relaxed">
+            혼자 매칭됐어요. 1시간 안에 추가 합류가 들어오면 바로 알려드릴게요.
+          </div>
+        )}
+        {fromJoin && joinRole === "subsequent" && (
+          <div className="mt-4 rounded-[12px] bg-[#F5F6F7] px-4 py-3 text-[13px] text-[#4B4F54] leading-relaxed">
+            {mode === "reservation"
+              ? `${currentCount}명이 함께 듣는 예약 방에 합류했어요. 마감 시각까지 더 합류하면 차액이 자동 정산돼요.`
+              : `${currentCount}명이 함께 들어요. 마감까지 ${joinWindowMin ?? 0}분 남았어요. 최종 인원이 늘어나면 차액이 자동 정산돼요.`}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -71,14 +144,14 @@ export default function C8MatchConfirmed() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[20px] font-bold text-[#191919]">{mockData.instructor.name}</span>
+                <span className="text-[20px] font-bold text-[#191919]">{instructor.name}</span>
                 <div className="px-2.5 py-1 bg-[#2563EB] rounded-lg shadow-sm">
-                  <span className="text-[11px] font-bold text-white">{mockData.instructor.grade}등급</span>
+                  <span className="text-[11px] font-bold text-white">{instructor.grade}등급</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-[#FF8A00] text-[#FF8A00]" strokeWidth={0} />
-                <span className="text-[15px] font-bold text-[#191919]">{mockData.instructor.rating}</span>
+                <span className="text-[15px] font-bold text-[#191919]">{instructor.rating}</span>
               </div>
             </div>
           </div>
@@ -100,11 +173,11 @@ export default function C8MatchConfirmed() {
           <div className="text-[15px] font-bold text-[#191919] mb-4">강습 정보</div>
           <div className="bg-white rounded-[20px] p-5 shadow-md border border-[#E5E6E8] space-y-3">
             {[
-              { label: "강습 시간", value: mockData.lesson.startTime },
-              { label: "시간", value: mockData.lesson.duration },
-              { label: "종목·레벨", value: `${mockData.lesson.discipline} · ${mockData.lesson.level}` },
-              { label: "인원", value: `${mockData.lesson.groupSize}명` },
-              { label: "장소", value: mockData.lesson.location },
+              { label: "강습 시간", value: lesson.startTime },
+              { label: "시간", value: lesson.duration },
+              { label: "종목·레벨", value: `${lesson.discipline} · ${lesson.level}` },
+              { label: "인원", value: `${lesson.groupSize}명${fromJoin && joinRole === "subsequent" ? " (현재)" : ""}` },
+              { label: "장소", value: lesson.location },
             ].map((item, i) => (
               <div key={i} className="flex items-center justify-between">
                 <span className="text-[13px] text-[#76787A]">{item.label}</span>
@@ -145,9 +218,14 @@ export default function C8MatchConfirmed() {
             <div className="flex items-center justify-between">
               <span className="text-[14px] text-[#4B4F54]">{mockData.payment.method}</span>
               <div className="text-[24px] font-bold text-[#191919] leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>
-                ₩{mockData.payment.amount.toLocaleString()}원
+                ₩{perPersonPrice.toLocaleString()}원
               </div>
             </div>
+            {fromJoin && joinRole !== "solo" && (
+              <div className="mt-2 text-[12px] text-[#76787A]">
+                최종 인원에 따라 자동 정산돼요
+              </div>
+            )}
           </div>
         </div>
 

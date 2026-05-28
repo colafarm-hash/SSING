@@ -9,7 +9,6 @@ import C6RoomDetail from "./screens/C6RoomDetail";
 import C7Payment from "./screens/C7Payment";
 import C8MatchConfirmed from "./screens/C8MatchConfirmed";
 import C9PostLessonRating from "./screens/C9PostLessonRating";
-import GroupMatching from "./screens/GroupMatching";
 import S1Chat from "./screens/S1Chat";
 import S2Location from "./screens/S2Location";
 import S3Notifications from "./screens/S3Notifications";
@@ -35,7 +34,6 @@ export const router = createBrowserRouter([
   { path: "/payment", Component: C7Payment, ErrorBoundary: NotFound },
   { path: "/confirmed", Component: C8MatchConfirmed, ErrorBoundary: NotFound },
   { path: "/rating", Component: C9PostLessonRating, ErrorBoundary: NotFound },
-  { path: "/group-matching", Component: GroupMatching, ErrorBoundary: NotFound },
   { path: "/chat/:matchId", Component: S1Chat, ErrorBoundary: NotFound },
   { path: "/location", Component: S2Location, ErrorBoundary: NotFound },
   { path: "/notifications", Component: S3Notifications, ErrorBoundary: NotFound },

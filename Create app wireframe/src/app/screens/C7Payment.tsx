@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { ChevronLeft, Star, CreditCard, Shield, Sparkles, Award } from "lucide-react";
 
-const mockData = {
+type JoinRole = "first" | "subsequent" | "solo";
+
+const defaultData = {
   instructor: { name: "김OO", grade: 5, rating: 4.9 },
   lesson: {
     discipline: "스키",
@@ -12,26 +14,6 @@ const mockData = {
     startTime: "지금부터 1시간 내 강습",
     location: "지산리조트",
   },
-  pricing: {
-    basePrice: 70000,
-    perPersonPrice: 43750,
-  },
-};
-
-const mockGroupData = {
-  instructor: { name: "박민수", grade: 5, rating: 4.9 },
-  lesson: {
-    discipline: "스키",
-    level: "초급",
-    groupSize: 3,
-    duration: "3시간",
-    startTime: "지금부터 1시간 내 강습",
-    location: "지산리조트",
-  },
-  pricing: {
-    basePrice: 70000,
-    perPersonPrice: 35000,
-  },
 };
 
 const paymentMethods = [
@@ -40,20 +22,68 @@ const paymentMethods = [
   { id: "toss", name: "토스", icon: CreditCard },
 ];
 
+const P = 70000;
+const ALPHA = 17500;
+
 export default function C7Payment() {
   const navigate = useNavigate();
   const location = useLocation();
   const [paymentMethod, setPaymentMethod] = useState("card");
-  const [isGroupMatching, setIsGroupMatching] = useState(false);
 
-  useEffect(() => {
-    // Detect if we came from group matching
-    if (location.state?.fromGroupMatching || document.referrer.includes('/group-matching')) {
-      setIsGroupMatching(true);
-    }
-  }, [location]);
+  // location.state 에서 합류 컨텍스트 읽기 (없으면 데모용 기본값)
+  const fromJoin: boolean = location.state?.fromInstructorJoin === true;
+  const joinRole: JoinRole = location.state?.joinRole ?? "solo";
+  const currentCount: number = location.state?.currentCount ?? 1;
+  const joinWindowMin: number | undefined = location.state?.joinWindowMin;
+  const perPersonPrice: number = location.state?.perPersonPrice ?? P;
+  const mode: "instant" | "reservation" = location.state?.mode ?? "instant";
+  const instructor = location.state?.instructor ?? defaultData.instructor;
+  const conditions = location.state?.conditions;
 
-  const data = isGroupMatching ? mockGroupData : mockData;
+  // 예약 모드 — C6 에서 방 정보를 직접 넘겨주는 경우 우선 사용
+  const reservationLesson = location.state?.reservationLesson;
+
+  // Build lesson summary from state if present
+  const lesson = reservationLesson
+    ? {
+        discipline: reservationLesson.discipline,
+        level: reservationLesson.level,
+        groupSize: reservationLesson.groupSize ?? currentCount,
+        duration: reservationLesson.duration,
+        startTime: reservationLesson.startTime,
+        location: reservationLesson.location ?? defaultData.lesson.location,
+      }
+    : {
+        discipline:
+          conditions?.discipline === "ski"
+            ? "스키"
+            : conditions?.discipline === "snowboard"
+            ? "보드"
+            : defaultData.lesson.discipline,
+        level:
+          conditions?.level === "beginner"
+            ? "입문"
+            : conditions?.level === "intermediate"
+            ? "초급"
+            : conditions?.level === "advanced"
+            ? "상급"
+            : defaultData.lesson.level,
+        groupSize: conditions?.groupSize ?? defaultData.lesson.groupSize,
+        duration: conditions?.duration
+          ? `${conditions.duration}시간`
+          : defaultData.lesson.duration,
+        startTime:
+          mode === "instant"
+            ? joinRole === "subsequent"
+              ? "이 방 시작 시간 기준 1시간 내"
+              : "지금부터 1시간 내 강습"
+            : defaultData.lesson.startTime,
+        location: defaultData.lesson.location,
+      };
+
+  // For solo case, basePrice = perPersonPrice. For first, perPerson = P. For subsequent, perPerson < P.
+  const basePrice = P;
+  const discount = basePrice - perPersonPrice;
 
   return (
     <div className="h-screen w-full max-w-[393px] mx-auto bg-white flex flex-col relative">
@@ -70,10 +100,15 @@ export default function C7Payment() {
       <div className="relative z-10 flex-1 overflow-y-auto pb-32">
         {/* Instructor Summary */}
         <div className="px-5 py-6 bg-white border-b border-[#E5E6E8]">
-          {isGroupMatching && (
-            <div className="text-[13px] font-semibold text-[#2563EB] mb-3 flex items-center gap-1.5">
-              <div className="w-1 h-3.5 bg-[#2563EB] rounded-full" />
-              그룹 매칭 · {data.instructor.name} 강사
+          {fromJoin && joinRole !== "solo" && (
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#2563EB]/10 mb-3">
+              <span className="text-[12px] font-bold text-[#2563EB]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {joinRole === "first"
+                  ? "1번째로 입장 · 합류 대기 1시간"
+                  : mode === "reservation"
+                  ? `${currentCount}번째로 합류 · 예약 방`
+                  : `${currentCount}번째로 합류 · 마감까지 ${joinWindowMin ?? 0}분`}
+              </span>
             </div>
           )}
           <div className="flex items-center gap-4">
@@ -85,14 +120,14 @@ export default function C7Payment() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[18px] font-bold text-[#191919]">{data.instructor.name}</span>
+                <span className="text-[18px] font-bold text-[#191919]">{instructor.name}</span>
                 <div className="px-2 py-0.5 bg-[#2563EB] rounded-lg shadow-sm">
-                  <span className="text-[11px] font-bold text-white">{data.instructor.grade}등급</span>
+                  <span className="text-[11px] font-bold text-white">{instructor.grade}등급</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-[#FF8A00] text-[#FF8A00]" strokeWidth={0} />
-                <span className="text-[14px] font-bold text-[#191919]">{data.instructor.rating}</span>
+                <span className="text-[14px] font-bold text-[#191919]">{instructor.rating}</span>
               </div>
             </div>
           </div>
@@ -103,11 +138,11 @@ export default function C7Payment() {
           <div className="text-[15px] font-bold text-[#191919] mb-4">강습 정보</div>
           <div className="bg-white rounded-[20px] p-5 shadow-md border border-[#E5E6E8] space-y-3">
             {[
-              { label: "종목·레벨", value: `${data.lesson.discipline} · ${data.lesson.level}` },
-              { label: "인원", value: `${data.lesson.groupSize}명` },
-              { label: "시간", value: data.lesson.duration },
-              { label: "강습 시작", value: data.lesson.startTime },
-              { label: "장소", value: data.lesson.location },
+              { label: "종목·레벨", value: `${lesson.discipline} · ${lesson.level}` },
+              { label: "인원", value: `${currentCount}명${fromJoin && joinRole !== "solo" ? " (현재)" : ""}` },
+              { label: "시간", value: lesson.duration },
+              { label: "강습 시작", value: lesson.startTime },
+              { label: "장소", value: lesson.location },
             ].map((item, i) => (
               <div key={i} className="flex items-center justify-between">
                 <span className="text-[13px] text-[#76787A] font-normal">{item.label}</span>
@@ -117,6 +152,24 @@ export default function C7Payment() {
           </div>
         </div>
 
+        {/* 합류 정산 안내 (fromJoin && joinRole !== "solo") */}
+        {fromJoin && joinRole !== "solo" && (
+          <div className="px-5 py-5 border-b border-[#E5E6E8]">
+            <div className="bg-[#F5F6F7] rounded-[14px] p-4">
+              <div className="text-[14px] font-bold text-[#191919] mb-1.5">
+                추가 합류 시 가격이 자동 정산돼요
+              </div>
+              <div className="text-[13px] text-[#4B4F54] leading-relaxed">
+                {joinRole === "first"
+                  ? "지금은 1:1 기준 ₩70,000원이 부과돼요. 1시간 안에 다른 분이 합류하면 차액이 자동으로 환불·적립돼요."
+                  : mode === "reservation"
+                  ? `지금은 ${currentCount}명 기준 인당 ₩${perPersonPrice.toLocaleString()}원이 부과돼요. 강사가 정한 추가 입장 마감 시각까지 더 합류하면 차액이 자동으로 환불·적립돼요.`
+                  : `지금은 ${currentCount}명 기준 인당 ₩${perPersonPrice.toLocaleString()}원이 부과돼요. 윈도우 안에 더 합류하면 차액이 자동으로 환불·적립돼요.`}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Pricing */}
         <div className="px-5 py-6 border-b border-[#E5E6E8]">
           <div className="text-[15px] font-bold text-[#191919] mb-4">결제 금액</div>
@@ -124,17 +177,34 @@ export default function C7Payment() {
             <div className="space-y-3 mb-4 pb-4 border-b border-[#E5E6E8]">
               <div className="flex items-center justify-between">
                 <span className="text-[14px] text-[#4B4F54] font-normal">1:1 기준가</span>
-                <span className="text-[15px] font-normal text-[#191919]">₩{data.pricing.basePrice.toLocaleString()}원</span>
+                <span className="text-[15px] font-normal text-[#191919]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  ₩{basePrice.toLocaleString()}원
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[14px] text-[#4B4F54] font-normal">인원 분담 ({data.lesson.groupSize}명)</span>
-                <span className="text-[15px] font-normal text-[#0FB882]">-₩{(data.pricing.basePrice - data.pricing.perPersonPrice).toLocaleString()}원</span>
-              </div>
+              {discount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] text-[#4B4F54] font-normal">
+                    인원 분담 ({currentCount}명)
+                  </span>
+                  <span className="text-[15px] font-normal text-[#0FB882]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    -₩{discount.toLocaleString()}원
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-baseline justify-between mb-4">
-              <span className="text-[16px] font-bold text-[#191919]">1인 부담</span>
-              <div className="text-[28px] font-bold text-[#191919] leading-none">₩{data.pricing.perPersonPrice.toLocaleString()}원</div>
+              <span className="text-[16px] font-bold text-[#191919]">
+                {joinRole === "first" ? "현재 부담 (1명 기준)" : "1인 부담"}
+              </span>
+              <div className="text-[28px] font-bold text-[#191919] leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>
+                ₩{perPersonPrice.toLocaleString()}원
+              </div>
             </div>
+            {fromJoin && joinRole === "first" && (
+              <div className="text-[12px] text-[#76787A] mb-3">
+                최대 5명까지 인당 ₩28,000원까지 분담 가능
+              </div>
+            )}
             <div className="space-y-2 pt-3 border-t border-[#E5E6E8]">
               <div className="flex items-center gap-2 text-[12px]">
                 <Shield className="w-3.5 h-3.5 text-[#0FB882]" strokeWidth={2} />
@@ -203,13 +273,25 @@ export default function C7Payment() {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              navigate("/confirmed");
+              navigate("/confirmed", {
+                state: {
+                  instructor,
+                  conditions,
+                  reservationLesson,
+                  joinRole,
+                  currentCount,
+                  joinWindowMin,
+                  perPersonPrice,
+                  mode,
+                  fromInstructorJoin: fromJoin,
+                },
+              });
             }}
             className="group w-full h-[58px] bg-gradient-to-r from-[#2563EB] to-[#1E40AF] rounded-[20px] text-[17px] font-bold text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
-            style={{ pointerEvents: 'auto' }}
+            style={{ pointerEvents: "auto", fontVariantNumeric: "tabular-nums" }}
           >
             <Sparkles className="w-5 h-5" strokeWidth={2.5} />
-            ₩{data.pricing.perPersonPrice.toLocaleString()}원 결제하기
+            ₩{perPersonPrice.toLocaleString()}원 결제하기
           </button>
         </div>
       </div>

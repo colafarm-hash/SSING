@@ -38,7 +38,39 @@ export default function C6RoomDetail() {
 
   const handleConfirm = () => {
     setShowDialog(false);
-    navigate("/payment");
+    // 예약 매칭: 본인이 합류하면 currentCount = (방 현재 인원 + 1)
+    const newCount = mockRoom.occupancy.current + 1;
+    navigate("/payment", {
+      state: {
+        instructor: {
+          name: mockRoom.instructor.name,
+          grade: mockRoom.instructor.grade,
+          rating: mockRoom.instructor.rating,
+        },
+        // C7 lesson 빌더가 알아볼 수 있도록 reservation 모드용 컨텍스트 전달
+        mode: "reservation",
+        // 예약 방의 강습 정보 (C7 의 mockData fallback 을 덮어쓰기 위해 reservationLesson 키로 전달)
+        reservationLesson: {
+          startTime: mockRoom.startTime,
+          duration: mockRoom.duration,
+          discipline: mockRoom.discipline,
+          level: mockRoom.levels.join(", "),
+          location: mockRoom.location,
+          groupSize: newCount,
+        },
+        // 예약 방의 가격은 방 설정 가격 그대로 사용
+        perPersonPrice: mockRoom.price,
+        currentCount: newCount,
+        // 예약 방 합류 — fromInstructorJoin 으로 통합 표시 (정산 안내·차액 메커니즘 동일)
+        fromInstructorJoin: mockRoom.isMulti && newCount > 1,
+        joinRole: mockRoom.isMulti
+          ? newCount > 1
+            ? "subsequent"
+            : "first"
+          : "solo",
+        // 예약 방은 방 자체의 타임리밋이 따로 있음 — 분 단위 미정이라 디스플레이용으로만
+      },
+    });
   };
 
   return (
