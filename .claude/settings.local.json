@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:oh-my-design.kr)",
+      "PowerShell(git init)",
+      "PowerShell(git branch -M main)",
+      "PowerShell(git config core.quotepath false)"
+    ]
+  }
+}
