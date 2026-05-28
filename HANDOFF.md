@@ -193,3 +193,116 @@
 | 2026-05-28 | 폴더 구조 정리, HANDOFF 문서 작성 |
 | 2026-05-28 | 디자인 워크플로우 착수 — DESIGN.md(Kakao T 기반) 확정, 브랜드 컬러 #2563eb 블루 확정, 소비자 앱 C1~C9 화면 목록 확정. **다음: C1부터 화면 정의서 작성 (Cowork에서 이어감)** |
 | 2026-05-28 | C1 와프 초안 → 2-Panel Hero Split 강화 → **단순 두 버튼 분기로 회귀**. 매칭 알고리즘 = 개인화 풀(중복 노출 + 뷰어 뱃지 + 실시간 입출) 메커니즘 04 문서에 명시. **다음: C2 요청 입력부터 진행** |
+| 2026-05-29 | **와이어프레임 v2 전환 (Reference 기반)**. Figma Make 도입, Toss/Apple Music/Linear/Strava reference로 디자인 시스템 보강. 사용자 앱 24 화면 + 모달 + 라우팅 완성. 와이어플로우 다이어그램(발표·인수인계용) 별도 프로젝트로 생성 |
+| 2026-05-29 | **타인 매칭(그룹+Voting) 메커니즘 04에 추가**. 즉시·예약 모드 둘 다 "함께 듣기 OK / 1:1 단독만" 옵션. 즉시 + 함께OK → 그룹 매칭 + voting flow (`/group-matching`) |
+| 2026-05-29 | Master Patch + Wireflow Patch 작성 완료. Figma Make에 던지면 모든 이슈(빌드 실패·죽은 버튼·라우팅 누락·화살표 가독성) 해결 |
+| 2026-05-29 | 사용자 자고 오면서 메모 3가지 대기 — Wireflow 화살표 정밀화(버튼→창), 미니 모킹 픽셀 정합, voting 제거 + 즉시매칭 "강사단위" 전환 (정확한 의미는 사용자가 추후 설명 예정) |
+
+---
+
+## 10. 와이어프레임 진행 사항 상세 (2026-05-28 ~ 2026-05-29)
+
+### 워크플로우 변화
+
+| 시점 | 방식 | 산출물 |
+|---|---|---|
+| 초기 | 텍스트 화면 정의서 (마크다운) | `wireframes/01_C1_home.md` ~ `09_C9_rating.md` |
+| 중기 | Figma Make 도입 → 시각적 결과 | TSX 파일 (실 작동 코드) |
+| 후기 | **Reference 기반 v2** (Toss·Apple·Linear·Strava) | 디자인 시스템 일관성 ↑ |
+
+**핵심 룰**: Figma Make = **single source of truth**. 로컬 수정은 즉시 Figma Make patch로 동기화 (안 그러면 다음 zip에서 덮어쓰임).
+
+### 두 개의 Figma Make 프로젝트
+
+| 프로젝트 | 위치 | 용도 |
+|---|---|---|
+| **Create app wireframe** | `C:\Users\신지환\Desktop\ssing\Create app wireframe\` | 실 작동 앱 (24 화면 + 4 모달 + 라우팅) |
+| **Wireflow Diagram for SSING** | `C:\Users\신지환\Desktop\ssing\Wireflow Diagram for SSING\` | 발표·인수인계용 흐름도 (한 보드에 모든 카드 + 화살표) |
+
+### 24개 화면 라우팅 (앱 프로젝트)
+
+```
+/login (O1)
+/ (C1 홈)
+/request (C2)
+/instructors (C3 강사 풀, 즉시 1:1)
+/instructor/:id (C4)
+/rooms (C5 방 목록, 예약)
+/room/:id (C6)
+/payment (C7)
+/confirmed (C8)
+/rating (C9)
+/group-matching (즉시 + 타인매칭, voting flow)
+/chat/:matchId (S1)
+/location (S2)
+/notifications (S3)
+/history (S4)
+/messages (S5)
+/profile (S6)
+/report/:matchId (S9)
+/edit-profile, /payment-methods, /notification-settings, /support, /terms (설정 5개)
+/* (NotFound)
+```
+
+### v2 Reference 디자인 시스템
+
+**금지 (generic SaaS 패턴)**: 그라데이션 도배 / 컬러 그림자 (`shadow-[#color]/N`) / font-black (900) / 황금색 (#FFD700) / 이모지 / 인사·꾸밈 헤더
+
+**Reference 적용**: Toss (clean white + weight hierarchy + tabular) / Apple Music (display 헤딩 + 정보 위계) / Linear (그라데이션 디시플린) / Strava (메트릭 표현만)
+
+### Patch 파일 인덱스 (wireframes/)
+
+| 파일 | 던질 대상 | 상태 |
+|---|---|---|
+| `figma_make_master_patch.md` | Create app wireframe (앱) | **대기** — 던지면 빌드 통과 + 31건 fix 다 적용 |
+| `figma_make_wireflow_patch.md` | Wireflow Diagram | **대기** — 던지면 30+ 내용 fix + 화살표 ortho 재배치 |
+| `figma_make_patch.md` (Patch 1) | (Master에 포함) | 작성 완료 |
+| `figma_make_patch3.md` (C1+타인매칭+voting) | (Master에 포함) | 작성 완료 |
+| `figma_make_loading.md` (MatchingLoader) | (Master에 포함) | 작성 완료 |
+| `figma_make_settings.md` (설정 5개) | (Master에 포함) | 작성 완료 |
+| `figma_make_onboarding.md` (O1Login) | 이미 던져서 받음 | 완료 |
+| `figma_make_wireflow.md` (Wireflow 초기 생성) | 이미 던져서 받음 | 완료 (개선 patch 대기) |
+| `figma_make_all_screens.md` (C1~C9 통합) | 이미 던져서 받음 | 완료 |
+| `figma_make_subscreens.md` (S1~S9) | 이미 던져서 받음 | 완료 |
+| `figma_make_base_prompt.md` | Reference (System Context) | 작성 완료 (참고용) |
+
+### 04_matching_system.md 보강 사항 (2026-05-29)
+
+- 매칭 알고리즘 섹션 신설 (개인화 풀 / 중복 노출 / 뷰어 뱃지 / 실시간 입출 / 락-인)
+- 강습 요청 조건에 추가:
+  - **시작 시간** (예약 모드 전용)
+  - **다중매칭 허용 여부** (예약 모드 전용)
+- **즉시 매칭 + 타인 매칭 (그룹+Voting)** 섹션 신설:
+  - 그룹 매칭 알고리즘 (조건 기반 그룹핑)
+  - 그룹 정원 2~5명 (권장 3~4)
+  - Voting 3분, 1인 1표, 등급→평점→재예약률 tie-break
+  - 직접 그룹 vs 타인 매칭 비교
+- 미확정 사항 명시 (타임리밋 정확값, 표 수, 형성 실패 처리 등)
+
+### 사용자 작업 메모 (대기 중인 다음 작업)
+
+| Task ID | 작업 |
+|---|---|
+| #48 | **Wireflow 화살표 정밀화** — 창→창 단위가 아닌 **창 내 specific 버튼 → 다음 창**으로 (예: C1의 "지금 강습" 버튼 → C2) |
+| #49 | **Wireflow 미니 모킹 픽셀 정합** — 실제 SSING 앱 화면과 픽셀 단위 동일 (단순화 X) |
+| #50 | **Voting 제거 + 즉시매칭 "강사단위" 전환** — "강사단위" 정확한 의미는 **사용자가 다음 메시지에서 설명할 예정** |
+
+### 노트북에서 이어서 작업 시 첫 발화 권장
+
+```
+HANDOFF.md 섹션 10 읽었습니다. 현재 위치 = 와이어프레임 후반.
+
+대기 중인 액션:
+1. Master Patch (figma_make_master_patch.md) Figma Make 앱 세션에 던지기
+2. Wireflow Patch (figma_make_wireflow_patch.md) Figma Make 와이어플로우 세션에 던지기
+3. 사용자 메모 3건 처리 — 화살표 정밀화, 픽셀 정합, voting 제거 + 강사단위
+4. "강사단위" 의미는 받는 대로 즉시 04 + 화면에 반영
+
+먼저 사용자 결정 받을 것: 1·2 patch 진행 여부 + 메모 3건 처리 순서.
+```
+
+### Git 상태 (2026-05-29 시점)
+
+- 사용자가 노트북으로 작업 이동 중
+- git push prompt를 Claude Code에 던져서 처리 중
+- 모든 최신 작업물이 push되면 노트북에서 git clone 또는 git pull로 이어 작업 가능

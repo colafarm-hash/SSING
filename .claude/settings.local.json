@@ -4,7 +4,8 @@
       "WebFetch(domain:oh-my-design.kr)",
       "PowerShell(git init)",
       "PowerShell(git branch -M main)",
-      "PowerShell(git config core.quotepath false)"
+      "PowerShell(git config core.quotepath false)",
+      "PowerShell(git status --short | Measure-Object | Select-Object -ExpandProperty Count; Write-Host '---'; git status --short | Group-Object { \\($_ -split ' ', 2\\)[1] -replace '/.+', '/' } | Sort-Object Count -Descending | Select-Object Count, Name -First 20)"
     ]
   }
 }
